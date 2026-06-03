@@ -14,12 +14,14 @@
       "backgroundColor": "#0f172a"
     },
     "ios": {
+      "bundleIdentifier": "com.tierlists.app",
       "supportsTablet": true,
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Allow Tier Lists to access your photos so you can add them to your tier lists."
       }
     },
     "android": {
+      "package": "com.tierlists.app",
       "adaptiveIcon": {
         "backgroundColor": "#0f172a",
         "foregroundImage": "./assets/android-icon-foreground.png",

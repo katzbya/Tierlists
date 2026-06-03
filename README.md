@@ -55,6 +55,33 @@ Then open the app on your phone:
 > navigation, but native drag-and-drop, photo import, and on-device persistence
 > are best tested on a real device via Expo Go.
 
+## Installing a standalone APK on Android
+
+You can build a real, installable `.apk` (no Expo Go required) using
+[EAS Build](https://docs.expo.dev/build/introduction/) — Expo's cloud build
+service. No Android Studio or Mac needed.
+
+1. Install the EAS CLI and log in with a free Expo account:
+   ```bash
+   npm install -g eas-cli
+   eas login
+   ```
+2. First time only, link the project (creates an EAS project id):
+   ```bash
+   eas init
+   ```
+3. Build the APK in the cloud (~10–15 min):
+   ```bash
+   eas build -p android --profile preview
+   ```
+4. When it finishes, EAS prints a **download link** and QR code. Open it on
+   your Android phone, download the `.apk`, and tap it to install. You'll need
+   to allow "Install unknown apps" for your browser the first time.
+
+The `preview` and `production` profiles in `eas.json` are configured to output
+an installable APK (the default Play Store build produces an `.aab`, which
+can't be sideloaded directly).
+
 ## Project structure
 
 ```

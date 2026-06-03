@@ -1,0 +1,55 @@
+name: Build Android APK
+
+# Builds a standalone, installable release APK on GitHub's runners (which have
+# the Android SDK and open network access). The release build bundles the
+# JavaScript inside the APK so it runs without a Metro dev server. It is signed
+# with the default debug keystore, which is fine for sideloading/personal use.
+# The APK is uploaded as a downloadable artifact on each run.
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches:
+      - claude/tierlist-app-templates-ELUJm
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate native Android project
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Build release APK
+        run: |
+          cd android
+          chmod +x ./gradlew
+          ./gradlew assembleRelease --no-daemon
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: tierlists-apk
+          path: android/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error

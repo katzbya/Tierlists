@@ -5,10 +5,8 @@ import { CSS } from "@dnd-kit/utilities";
 import type { TierItem, Image } from "@/types";
 import { createClient } from "@/lib/supabase/client";
 
-const supabase = createClient();
-
 function getImageUrl(storagePath: string) {
-  return supabase.storage.from("images").getPublicUrl(storagePath).data.publicUrl;
+  return createClient().storage.from("images").getPublicUrl(storagePath).data.publicUrl;
 }
 
 interface DraggableImageProps {

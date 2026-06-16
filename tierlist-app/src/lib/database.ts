@@ -2,12 +2,13 @@ import { createClient } from "@/lib/supabase/client";
 import { v4 as uuidv4 } from "uuid";
 import { DEFAULT_TIERS, type TierList, type Tier, type TierItem, type Image, type TierWithItems } from "@/types";
 
-const supabase = createClient();
+// Lazily create the client so module evaluation at build time doesn't fail
+function db() { return createClient(); }
 
 // ─── Tier Lists ───────────────────────────────────────────────────────────────
 
 export async function getTierLists(userId: string): Promise<TierList[]> {
-  const { data, error } = await supabase
+  const { data, error } = await db()
     .from("tier_lists")
     .select("*")
     .eq("user_id", userId)
@@ -19,7 +20,7 @@ export async function getTierLists(userId: string): Promise<TierList[]> {
 export async function createTierList(userId: string, name: string): Promise<TierList> {
   const tierListId = uuidv4();
 
-  const { data: tierList, error: tlError } = await supabase
+  const { data: tierList, error: tlError } = await db()
     .from("tier_lists")
     .insert({ id: tierListId, user_id: userId, name })
     .select()
@@ -34,18 +35,19 @@ export async function createTierList(userId: string, name: string): Promise<Tier
     position: i,
   }));
 
-  const { error: tiersError } = await supabase.from("tiers").insert(tiers);
+  const { error: tiersError } = await db().from("tiers").insert(tiers);
   if (tiersError) throw tiersError;
 
   return tierList;
 }
 
 export async function deleteTierList(id: string): Promise<void> {
-  const { error } = await supabase.from("tier_lists").delete().eq("id", id);
+  const { error } = await db().from("tier_lists").delete().eq("id", id);
   if (error) throw error;
 }
 
 export async function duplicateTierList(id: string, userId: string): Promise<TierList> {
+  const supabase = db();
   const { data: original, error: e1 } = await supabase
     .from("tier_lists").select("*").eq("id", id).single();
   if (e1) throw e1;
@@ -89,6 +91,7 @@ export async function duplicateTierList(id: string, userId: string): Promise<Tie
 // ─── Editor Load ──────────────────────────────────────────────────────────────
 
 export async function loadEditor(tierListId: string) {
+  const supabase = db();
   const [{ data: tierList }, { data: tiers }, { data: items }] = await Promise.all([
     supabase.from("tier_lists").select("*").eq("id", tierListId).single(),
     supabase.from("tiers").select("*").eq("tier_list_id", tierListId).order("position"),
@@ -113,14 +116,14 @@ export async function loadEditor(tierListId: string) {
 // ─── Tiers ────────────────────────────────────────────────────────────────────
 
 export async function saveTiers(tiers: Tier[]): Promise<void> {
-  const { error } = await supabase
+  const { error } = await db()
     .from("tiers")
     .upsert(tiers, { onConflict: "id" });
   if (error) throw error;
 }
 
 export async function addTier(tierListId: string, position: number): Promise<Tier> {
-  const { data, error } = await supabase
+  const { data, error } = await db()
     .from("tiers")
     .insert({ id: uuidv4(), tier_list_id: tierListId, label: "New", color: "#AAAAAA", position })
     .select().single();
@@ -129,6 +132,7 @@ export async function addTier(tierListId: string, position: number): Promise<Tie
 }
 
 export async function deleteTier(tierId: string, tierListId: string): Promise<void> {
+  const supabase = db();
   await supabase.from("tier_items")
     .update({ tier_id: null })
     .eq("tier_id", tierId)
@@ -141,14 +145,14 @@ export async function deleteTier(tierId: string, tierListId: string): Promise<vo
 
 export async function saveItems(items: TierItem[]): Promise<void> {
   const clean = items.map(({ image: _img, ...rest }: TierItem & { image?: Image }) => rest);
-  const { error } = await supabase
+  const { error } = await db()
     .from("tier_items")
     .upsert(clean, { onConflict: "id" });
   if (error) throw error;
 }
 
 export async function addItemToPool(tierListId: string, imageId: string, position: number): Promise<TierItem> {
-  const { data, error } = await supabase
+  const { data, error } = await db()
     .from("tier_items")
     .insert({ id: uuidv4(), tier_list_id: tierListId, tier_id: null, image_id: imageId, position })
     .select("*, image:images(*)")
@@ -160,31 +164,27 @@ export async function addItemToPool(tierListId: string, imageId: string, positio
 // ─── Images ───────────────────────────────────────────────────────────────────
 
 export async function uploadImage(userId: string, file: File): Promise<Image> {
+  const supabase = db();
   const imageId = uuidv4();
   const ext = file.name.split(".").pop();
-  const path = `${userId}/${imageId}.${ext}`;
+  const storagePath = `${userId}/${imageId}.${ext}`;
 
   const { error: uploadError } = await supabase.storage
     .from("images")
-    .upload(path, file, { contentType: file.type });
+    .upload(storagePath, file, { contentType: file.type });
   if (uploadError) throw uploadError;
 
   const { data, error } = await supabase
     .from("images")
-    .insert({ id: imageId, user_id: userId, name: file.name, storage_path: path })
+    .insert({ id: imageId, user_id: userId, name: file.name, storage_path: storagePath })
     .select().single();
   if (error) throw error;
 
   return data;
 }
 
-export async function getImageUrl(storagePath: string): Promise<string> {
-  const { data } = supabase.storage.from("images").getPublicUrl(storagePath);
-  return data.publicUrl;
-}
-
 export async function getUserImages(userId: string): Promise<Image[]> {
-  const { data, error } = await supabase
+  const { data, error } = await db()
     .from("images")
     .select("*")
     .eq("user_id", userId)
@@ -196,7 +196,7 @@ export async function getUserImages(userId: string): Promise<Image[]> {
 // ─── Tier List Name ───────────────────────────────────────────────────────────
 
 export async function updateTierListName(id: string, name: string): Promise<void> {
-  const { error } = await supabase
+  const { error } = await db()
     .from("tier_lists")
     .update({ name, updated_at: new Date().toISOString() })
     .eq("id", id);

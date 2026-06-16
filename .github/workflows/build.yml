@@ -1,0 +1,91 @@
+name: Build & Release Desktop App
+
+on:
+  push:
+    tags:
+      - "v*"           # Triggers on: git tag v1.0.0 && git push --tags
+  workflow_dispatch:   # Allows manual trigger from GitHub Actions UI
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            artifact: "*.exe"
+            name: Windows
+          - os: macos-latest
+            artifact: "*.dmg"
+            name: macOS
+          - os: ubuntu-latest
+            artifact: "*.AppImage"
+            name: Linux
+
+    runs-on: ${{ matrix.os }}
+    name: Build for ${{ matrix.name }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: tierlist-app/package-lock.json
+
+      - name: Install dependencies
+        working-directory: tierlist-app
+        run: npm ci
+
+      - name: Build Next.js + Electron package
+        working-directory: tierlist-app
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run build:electron
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TierForge-${{ matrix.name }}
+          path: |
+            tierlist-app/dist/${{ matrix.artifact }}
+          if-no-files-found: warn
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: TierForge ${{ github.ref_name }}
+          body: |
+            ## TierForge ${{ github.ref_name }}
+
+            Download the installer for your platform below.
+
+            | Platform | File |
+            |----------|------|
+            | Windows  | `TierForge Setup *.exe` |
+            | macOS    | `TierForge *.dmg` |
+            | Linux    | `TierForge *.AppImage` |
+
+            ### First time setup
+            After installing, the app opens in its own window.
+            Sign up for an account and your tier lists sync across devices.
+          files: artifacts/**/*
+          draft: false
+          prerelease: false

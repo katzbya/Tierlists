@@ -1,6 +1,5 @@
-const { app, BrowserWindow, shell } = require("electron");
+const { app, BrowserWindow, shell, utilityProcess } = require("electron");
 const path = require("path");
-const { spawn } = require("child_process");
 const net = require("net");
 
 const isDev = process.env.NODE_ENV === "development";
@@ -33,13 +32,16 @@ function waitForPort(port, retries = 60, delay = 500) {
   });
 }
 
-async function startNextServer(port) {
-  // When packaged by electron-builder, __dirname is inside the asar.
-  // The standalone server is placed next to the app.asar in resources.
-  const standaloneDir = app.isPackaged
-    ? path.join(process.resourcesPath, "app.asar.unpacked", ".next", "standalone")
-    : path.join(__dirname, "..", ".next", "standalone");
+function getStandaloneDir() {
+  if (isDev) {
+    return path.join(__dirname, "..", ".next", "standalone");
+  }
+  // electron-builder asarUnpack puts these files in app.asar.unpacked
+  return path.join(process.resourcesPath, "app.asar.unpacked", ".next", "standalone");
+}
 
+async function startNextServer(port) {
+  const standaloneDir = getStandaloneDir();
   const serverScript = path.join(standaloneDir, "server.js");
 
   const env = {
@@ -49,15 +51,17 @@ async function startNextServer(port) {
     HOSTNAME: "127.0.0.1",
   };
 
-  nextServer = spawn(process.execPath, [serverScript], {
+  // utilityProcess.fork runs a Node.js script using Electron's embedded Node —
+  // this is the correct way to spawn background Node processes in a packaged app.
+  nextServer = utilityProcess.fork(serverScript, [], {
     env,
     cwd: standaloneDir,
     stdio: "pipe",
   });
 
-  nextServer.stdout.on("data", (d) => process.stdout.write(d));
-  nextServer.stderr.on("data", (d) => process.stderr.write(d));
-  nextServer.on("error", (err) => console.error("Server error:", err));
+  nextServer.on("exit", (code) => {
+    console.log(`Next.js server exited with code ${code}`);
+  });
 
   await waitForPort(port);
 }

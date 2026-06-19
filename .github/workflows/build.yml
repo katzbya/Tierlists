@@ -3,8 +3,8 @@ name: Build & Release Desktop App
 on:
   push:
     tags:
-      - "v*"           # Triggers on: git tag v1.0.0 && git push --tags
-  workflow_dispatch:   # Allows manual trigger from GitHub Actions UI
+      - "v*"
+  workflow_dispatch:
 
 jobs:
   build:
@@ -42,8 +42,8 @@ jobs:
       - name: Build Next.js + Electron package
         working-directory: tierlist-app
         env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: "https://oxhsygrwgwsdnejnwgwf.supabase.co"
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: "sb_publishable_akZmvSZ8AaoJc3_WQOcc7A_JMwR7evh"
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run build:electron
 
@@ -82,10 +82,6 @@ jobs:
             | Windows  | `TierForge Setup *.exe` |
             | macOS    | `TierForge *.dmg` |
             | Linux    | `TierForge *.AppImage` |
-
-            ### First time setup
-            After installing, the app opens in its own window.
-            Sign up for an account and your tier lists sync across devices.
           files: artifacts/**/*
           draft: false
           prerelease: false

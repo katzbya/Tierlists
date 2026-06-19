@@ -2,12 +2,18 @@
   "name": "tierlist-app",
   "version": "0.1.0",
   "private": true,
+  "description": "TierForge - Create and share beautiful tier lists",
+  "author": "TierForge",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/katzbya/Tierlists"
+  },
   "main": "electron/main.js",
   "scripts": {
     "dev": "next dev",
     "dev:electron": "concurrently \"next dev\" \"wait-on http://localhost:3000 && NODE_ENV=development electron .\"",
     "build": "next build",
-    "build:electron": "next build && node electron/copy-static.js && electron-builder",
+    "build:electron": "next build && node electron/copy-static.js && electron-builder --publish never",
     "start": "next start",
     "lint": "eslint"
   },
@@ -29,9 +35,7 @@
       "target": [
         {
           "target": "nsis",
-          "arch": [
-            "x64"
-          ]
+          "arch": ["x64"]
         }
       ],
       "icon": "public/icon.ico"
@@ -40,10 +44,7 @@
       "target": [
         {
           "target": "dmg",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
+          "arch": ["x64", "arm64"]
         }
       ],
       "icon": "public/icon.icns"
@@ -52,9 +53,7 @@
       "target": [
         {
           "target": "AppImage",
-          "arch": [
-            "x64"
-          ]
+          "arch": ["x64"]
         }
       ],
       "icon": "public/icon.png"

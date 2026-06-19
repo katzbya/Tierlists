@@ -28,6 +28,7 @@ interface TierEditorProps {
 export default function TierEditor({ tierList, initialTiers, initialPool, images: initialImages, userId }: TierEditorProps) {
   const [listName, setListName] = useState(tierList.name);
   const [editingName, setEditingName] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [tiers, setTiers] = useState<TierWithItems[]>(initialTiers);
   const [pool, setPool] = useState<TierItem[]>(initialPool);
   const [images, setImages] = useState<Record<string, Image>>(initialImages);
@@ -298,16 +299,23 @@ export default function TierEditor({ tierList, initialTiers, initialPool, images
 
         <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
           {saving && <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>Saving…</span>}
-          <label style={{
-            background: "var(--surface-2)", color: "var(--text)", border: "1px solid var(--border)",
-            borderRadius: "8px", padding: "8px 14px", fontSize: "13px", cursor: "pointer",
-          }}>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".jpg,.jpeg,.png,.gif,.webp,.bmp,.svg"
+            multiple
+            style={{ display: "none" }}
+            onChange={(e) => e.target.files && handleUpload(e.target.files)}
+          />
+          <button
+            onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+            style={{
+              background: "var(--surface-2)", color: "var(--text)", border: "1px solid var(--border)",
+              borderRadius: "8px", padding: "8px 14px", fontSize: "13px", cursor: "pointer",
+            }}
+          >
             {uploading ? "Uploading…" : "Upload Images"}
-            <input
-              type="file" accept="image/*" multiple hidden
-              onChange={(e) => e.target.files && handleUpload(e.target.files)}
-            />
-          </label>
+          </button>
           <button
             onClick={handleExport}
             style={{

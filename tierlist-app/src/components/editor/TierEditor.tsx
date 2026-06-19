@@ -34,6 +34,7 @@ export default function TierEditor({ tierList, initialTiers, initialPool, images
   const [images, setImages] = useState<Record<string, Image>>(initialImages);
   const [activeItem, setActiveItem] = useState<TierItem | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [colorPickerTierId, setColorPickerTierId] = useState<string | null>(null);
   const exportRef = useRef<HTMLDivElement>(null);
@@ -62,6 +63,7 @@ export default function TierEditor({ tierList, initialTiers, initialPool, images
 
   async function handleUpload(files: FileList) {
     setUploading(true);
+    setUploadError(null);
     try {
       for (const file of Array.from(files)) {
         const img = await uploadImage(userId, file);
@@ -69,6 +71,10 @@ export default function TierEditor({ tierList, initialTiers, initialPool, images
         setImages((prev) => ({ ...prev, [img.id]: img }));
         setPool((prev) => [...prev, { ...item, image: img }]);
       }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setUploadError(msg);
+      console.error("Upload failed:", err);
     } finally {
       setUploading(false);
     }
@@ -299,6 +305,11 @@ export default function TierEditor({ tierList, initialTiers, initialPool, images
 
         <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
           {saving && <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>Saving…</span>}
+          {uploadError && (
+            <span style={{ fontSize: "12px", color: "#ef4444", maxWidth: "200px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={uploadError}>
+              Upload failed: {uploadError}
+            </span>
+          )}
           <input
             ref={fileInputRef}
             type="file"

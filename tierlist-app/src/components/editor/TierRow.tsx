@@ -35,11 +35,14 @@ export default function TierRow({
 
   return (
     <div
+      ref={setNodeRef}
       style={{
         display: "flex",
         borderBottom: "1px solid var(--border)",
         minHeight: "88px",
         position: "relative",
+        background: isOver ? "rgba(99,102,241,0.08)" : "transparent",
+        transition: "background 0.15s",
       }}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
@@ -98,7 +101,6 @@ export default function TierRow({
 
       {/* Items area */}
       <div
-        ref={setNodeRef}
         style={{
           flex: 1,
           display: "flex",
@@ -106,8 +108,6 @@ export default function TierRow({
           alignContent: "flex-start",
           gap: "6px",
           padding: "6px",
-          background: isOver ? "rgba(99,102,241,0.08)" : "transparent",
-          transition: "background 0.15s",
           minHeight: "88px",
         }}
       >
